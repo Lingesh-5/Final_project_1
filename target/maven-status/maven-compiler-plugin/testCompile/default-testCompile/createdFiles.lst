@@ -1,0 +1,5 @@
+com\example\realEstateListing\controllers\PropertyControllerTest.class
+com\example\realEstateListing\RealEstateListingApplicationTests.class
+com\example\realEstateListing\controllers\AuthControllerTest.class
+com\example\realEstateListing\controllers\ImageUploadControllerTest.class
+com\example\realEstateListing\controllers\AdminControllerTest.class

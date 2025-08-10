@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+</head>
+
+<body style="background-color: aliceblue;">
+    <script>
+        function save() {
+            const title = document.getElementById("title").value;
+            const type1 = document.getElementById("type1").checked;
+            const type2 = document.getElementById("type2").checked;
+            const ownerId = document.getElementById("ownerId").value;
+            const price = document.getElementById("price").value;
+            const location = document.getElementById("location").value;
+            const description = document.getElementById("description").value;
+            const type = type1 ? document.getElementById("type1").value : document.getElementById("type2").value;
+            const imageUrl = document.getElementById("imageUrl").value;
+            const contactNumber = document.getElementById("contactNumber").value;
+
+            const propertyId = document.getElementById("propertyId").value;
+
+            const userId = sessionStorage.getItem("id");
+            const token = sessionStorage.getItem("token");
+
+            const myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/json");
+            myHeaders.append("Authorization", "Bearer " + token);
+
+            const requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: JSON.stringify({ "title": title, "type": type, "ownerId": ownerId, "price": price, "location": location, "description": description, "userId": userId, "propertyId": propertyId, "adminApproval": "Not Approved", "imageUrl": imageUrl, "contactNumber": contactNumber }),
+                redirect: "follow"
+            };
+            fetch("http://localhost:8080/user/rest/save-property", requestOptions)
+                .then((response) => response.json())
+                .then((result) => {
+                    if(!result.ok) {
+                        if(result.title) {
+                            document.getElementById("title").value = result.title;
+                        }
+                        if(result.description) {
+                            document.getElementById("description").value = result.description;
+                        }
+                        if(result.location) {
+                            document.getElementById("location").value = result.location;
+                        }
+                        if(result.contactNumber) {
+                            document.getElementById("contactNumber").value = result.contactNumber;
+                        }
+                        onload();       
+                    }else {
+                        alert(result);
+                        onload();
+                    }
+                })
+                .catch((error) => console.error(error));
+        }
+        async function upload() {
+            const imageFile = document.getElementById("imagefile");
+            const file = imageFile.files[0];
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const token = sessionStorage.getItem("token");
+
+            const res = await fetch("http://localhost:8080/api/images/upload", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                body: formData
+            });
+
+            const result = await res.json();
+            if(result.secure_url) {
+                alert("Upload success");
+            }else {
+                alert(result);
+            }
+            document.getElementById("imageUrl").value = result.secure_url;
+
+        }
+        function onload() {
+            const token = sessionStorage.getItem("token");
+            const userId = sessionStorage.getItem("id");
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer " + token);
+
+            const requestOptions = {
+                method: "GET",
+                headers: myHeaders
+            };
+            fetch(`http://localhost:8080/user/rest/get-property/${userId}`, requestOptions)
+                .then((response) => response.json())
+                .then((result) => {
+                    const resp = result;
+                    loadData(resp.body.properties);
+                })
+                .catch((error) => console.error(error));
+
+            function loadData(properties) {
+                const tbody = document.getElementById("content");
+                tbody.innerHTML = '';
+                if(properties.length == 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center">-- No Record --</td></tr>`;
+                }else {
+                    properties.forEach(property => {
+                    tbody.innerHTML = tbody.innerHTML + `<tr>
+            			<td>${property.title}</td>
+						<td>${property.price}</td>
+            			<td>${property.type}</td>
+                        <td>${property.location}</td>
+                        <td>${property.ownerId}</td>
+                        <td>${property.description}</td>
+                        <td>${property.contactNumber}</td>
+                        <td><img src="${property.imageUrl}" class="img-thumbnail" style="width: 100px; height: 70px;"></td>
+                		<td>
+                    		<button onclick="editProperty('${property.id}')" class="btn btn-secondary">Edit</button>
+                            <button onclick="deleteProperty('${property.id}')" class="btn btn-danger">delete</button>
+                		</td>
+        		        </tr>`
+                })
+                    
+                }
+            }
+        } 
+        onload();
+        function deleteProperty(id) {
+            const token = sessionStorage.getItem("token");
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer " + token);
+
+            const requestOptions = {
+                method: "DELETE",
+                headers: myHeaders
+            };
+            fetch(`http://localhost:8080/user/rest/delete-property/${id}`, requestOptions)
+                .then((response) => response.text())
+                .then((result) => {
+                    alert(result);
+                    onload();
+                })
+                .catch((error) => console.error(error));
+        }
+        function editProperty(id) {
+            const token = sessionStorage.getItem("token");
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer " + token);
+
+            const requestOptions = {
+                method: "GET",
+                headers: myHeaders
+            };
+            fetch(`http://localhost:8080/user/rest/get-propertyById/${id}`, requestOptions)
+                .then((response) => response.json())
+                .then((result) => {
+                    document.getElementById("title").value = result.body.property.title;
+                    document.getElementById("price").value = result.body.property.price;
+                    document.getElementById("location").value = result.body.property.location;
+                    document.getElementById("ownerId").value = result.body.property.ownerId;
+                    document.getElementById("description").value = result.body.property.description;
+                    document.getElementById("propertyId").value = result.body.property.id;
+                    document.getElementById("imageUrl").value = result.body.property.imageUrl;
+                    document.getElementById("contactNumber").value = result.body.property.contactNumber;
+                    if(result.body.property.type == "sale") {
+                        document.getElementById("type1").checked = true;
+                    }else {
+                        document.getElementById("type2").checked = true;
+                    }
+                })
+                .catch((error) => console.error(error));
+        }
+        function resetAll() {
+            document.getElementById("title").value = null;
+            document.getElementById("ownerId").value = null;
+            document.getElementById("propertyId").value = null;
+            document.getElementById("price").value = null;
+            document.getElementById("location").value = null;
+            document.getElementById("description").value = null;
+            document.getElementById("type1").checked = false;
+            document.getElementById("type2").checked = false;
+            document.getElementById("imageUrl").value = null;
+            document.getElementById("contactNumber").value = null;
+        }
+        function propertyListPage() {
+            const token = sessionStorage.getItem("token");
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer "+token);
+            const requestOptions = {
+                method: "GET",
+                headers: myHeaders,
+                redirect: "follow"
+            };
+            fetch("http://localhost:8080/user/property-list", requestOptions)
+            .then((response) => response.text())
+            .then((html) => {
+                 document.write(html);
+                 document.close();
+            })
+            .catch((error) => console.error(error));
+        }
+    </script>
+    <header>
+        <div class="row border fixed-top" style="background-color:antiquewhite;">
+            <div class="col md-1"></div>
+            <div class="col md-1"></div>
+            <div class="col md-1"></div>
+            <div class="col md-1"></div>
+            <div class="col md-1"></div>
+            <div class="col md-1"></div>
+            <div class="col md-4 m-3">
+                <nav class="nav"><a href="" class="nav-link" onclick="propertyListPage()">Property List</a></nav>
+            </div>
+            <div class="col md-2 m-3 border-start border-dark-subtle">
+                <a href="http://localhost:8080/" class="btn btn-danger link-dark"><svg
+                        xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px"
+                        fill="#1f1f1f" class="d-inline">
+                        <path
+                            d="M216-144q-29.7 0-50.85-21.15Q144-186.3 144-216v-528q0-29.7 21.15-50.85Q186.3-816 216-816h264v72H216v528h264v72H216Zm432-168-51-51 81-81H384v-72h294l-81-81 51-51 168 168-168 168Z" />
+                    </svg></svg>Logout</a>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div class="container border border-top-0 border-secondary p-5 mt-5">
+            <div class="border-bottom border-black">
+                <h1>Add Property</h1>
+            </div><br />
+            <div class="row">
+                <div class="col md-6 p-4">
+                    <form>
+                        <label for="title" class="form-label">Title:</label>
+                        <input type="text" class="form-control" name="title" id="title" /><br />
+                        <fieldset class="row mb-3">
+                            <span class="col-form-label col-sm-2 pt-0">Type:</span>
+                            <div class="col sm-10">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="type" id="type1" value="Sale" required />
+                                    <label class="form-check-label" for="type1">
+                                        Sale
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="type" id="type2" value="Rent" required />
+                                    <label class="form-check-label" for="type2">
+                                        Rent
+                                    </label>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <label for="price" class="form-label">Price:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" class="form-control" id="price" name="price" required />
+                        </div><br />
+                        <label for="ownerId" class="form-label">Owner Id:</label>
+                        <input type="number" class="form-control" name="ownerId" id="ownerId" required/>
+                        <br /><br /><br />
+                        <input type="submit" class="btn btn-primary" value="save" onclick="save()" />
+                        <input type="button" class="btn btn-warning" value="New/Reset" onclick="resetAll()"  />
+                        <input type="hidden" id="propertyId" />
+                        <input type="hidden" id="imageUrl" />
+                    </form>
+                </div>
+                <div class="col md-6 p-4">
+                    <form>
+                        
+                        <label for="location" class="form-label">Location:</label>
+                        <input type="text" class="form-control" name="location" id="location" /><br />
+                        <label for="contactNumber" class="form-label">Contact number:</label>
+                        <input type="text" class="form-control" name="contactNumber" id="contactNumber" /><br />
+                        <label for="description" class="form-label">Description:</label>
+                        <textarea class="form-control" id="description" name="description" rows="2"></textarea><br />
+                        <label for="imagefile" class="form-label">Image upload:</label>
+                        <div class="row g-2">
+                            <div class="col-auto">
+                                <input type="file" name="file" formenctype="multipart/form-data" id="imagefile" class="form-control" />
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" class="btn btn-outline-primary" onclick="upload()">Upload</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="border-bottom border-black">
+                <h1>Owned Property List</h1>
+            </div><br />
+            <table class="table table-success table-striped">
+                <thead>
+                    <th>Title</th>
+                    <th>Price</th>
+                    <th>Type</th>
+                    <th>Location</th>
+                    <th>Owner Id</th>
+                    <th>Description</th>
+                    <th>Contact number</th>
+                    <th>Uploaded image</th>
+                    <th>Actions</th>
+                </thead>
+                <tbody id="content">
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+
+</html>

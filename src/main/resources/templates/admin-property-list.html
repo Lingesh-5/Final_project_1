@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+</head>
+
+<body style="background-color: aliceblue;">
+    <script>
+        function onload() {
+            const token = sessionStorage.getItem("token");
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer " + token);
+
+            const requestOptions = {
+                method: "GET",
+                headers: myHeaders
+            };
+            fetch("http://localhost:8080/admin/rest/get-allProperty", requestOptions)
+                .then((response) => response.json())
+                .then((result) => {
+                    const resp = result;
+                    loadData(resp.body.properties);
+                })
+                .catch((error) => console.error(error));
+
+            function loadData(properties) {
+                const tbody = document.getElementById("content");
+                tbody.innerHTML = '';
+                if (properties.length == 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center">-- No Record --</td></tr>`;
+                } else {
+                    properties.forEach(property => {
+                        let buttonEl;
+                        if(property.adminApproval == "approved") {
+                            buttonEl = `<button class="btn btn-secondary" disabled>Approved</button>`;
+                        }else {
+                            buttonEl = `<button onclick="approveProperty('${property.id}')" class="btn btn-secondary">Approve</button>`;
+                        }
+                        tbody.innerHTML = tbody.innerHTML + `<tr>
+            			<td>${property.title}</td>
+						<td>${property.price}</td>
+            			<td>${property.type}</td>
+                        <td>${property.location}</td>
+                        <td>${property.ownerId}</td>
+                        <td>${property.description}</td>
+                        <td>${property.contactNumber}</td>
+                        <td><img src="${property.imageUrl}" class="img-thumbnail" style="width: 100px; height: 70px;"></td>
+                		<td>`+buttonEl+
+                    		`<button onclick="deleteProperty('${property.id}')" class="btn btn-danger">delete</button>
+                		</td>
+        		        </tr>`
+                    })
+
+                }
+            }
+        }
+        onload();
+        function deleteProperty(id) {
+            const token = sessionStorage.getItem("token");
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer " + token);
+
+            const requestOptions = {
+                method: "DELETE",
+                headers: myHeaders
+            };
+            fetch(`http://localhost:8080/admin/rest/delete-property/${id}`, requestOptions)
+                .then((response) => response.text())
+                .then((result) => {
+                    alert(result);
+                    onload();
+                })
+                .catch((error) => console.error(error));
+        }
+        function approveProperty(id) {
+            const token = sessionStorage.getItem("token");
+
+            const myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/json");
+            myHeaders.append("Authorization", "Bearer " + token);
+
+            const requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: JSON.stringify({ "propertyId": id, "adminApproval": "approved"}),
+                redirect: "follow"
+            };
+            fetch("http://localhost:8080/admin/rest/save-propertyApproval", requestOptions)
+                .then((response) => response.text())
+                .then((result) => {
+                    alert(result);
+                    onload();
+                })
+                .catch((error) => console.error(error));
+        }
+        function userListPage() {          
+            const token = sessionStorage.getItem("token");
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", "Bearer "+token);
+            const requestOptions = {
+                method: "GET",
+                headers: myHeaders,
+                redirect: "follow"
+            };
+            fetch("http://localhost:8080/admin/user-list", requestOptions)
+            .then((response) => response.text())
+            .then((html) => {
+                 document.write(html);
+                 document.close();
+            })
+            .catch((error) => console.error(error));
+        }
+    </script>
+    <header>
+        <div class="row border fixed-top" style="background-color:antiquewhite;">
+            <div class="col md-1"></div>
+            <div class="col md-1"></div>
+            <div class="col md-1"></div>
+            <div class="col md-1"></div>
+            <div class="col md-1"></div>
+            <div class="col md-1"></div>
+            <div class="col md-4 m-3">
+                <nav class="nav"><a href="" class="nav-link" onclick="userListPage()">User List</a></nav>
+            </div>
+            <div class="col md-2 m-3 border-start border-dark-subtle">
+                <a href="http://localhost:8080/" class="btn btn-danger link-dark"><svg
+                        xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px"
+                        fill="#1f1f1f" class="d-inline">
+                        <path
+                            d="M216-144q-29.7 0-50.85-21.15Q144-186.3 144-216v-528q0-29.7 21.15-50.85Q186.3-816 216-816h264v72H216v528h264v72H216Zm432-168-51-51 81-81H384v-72h294l-81-81 51-51 168 168-168 168Z" />
+                    </svg></svg>Logout</a>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div class="container border border-top-0 border-secondary p-5 mt-5">
+            <div class="border-bottom border-black">
+                <h1>Property List</h1>
+            </div><br />
+            <table class="table table-success table-striped">
+                <thead>
+                    <th>Title</th>
+                    <th>Price</th>
+                    <th>Type</th>
+                    <th>Location</th>
+                    <th>Owner Id</th>
+                    <th>Description</th>
+                    <th>Contact number</th>
+                    <th>Uploaded image</th>
+                    <th>Actions</th>
+                </thead>
+                <tbody id="content">
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+</body>
+
+</html>
