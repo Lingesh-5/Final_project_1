@@ -1,33 +1,31 @@
 version: '3.8'
-services:
-  postgres:
-    image: postgres:15
-    container_name: postgres_db
-    restart: always
-    environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydb
-    ports:
-      - "5432:5432"
-    networks:
-      - backend
 
+services:
   app:
     build: .
-    container_name: spring_app
-    restart: always
-    depends_on:
-      - postgres
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mydb
-      SPRING_DATASOURCE_USERNAME: myuser
-      SPRING_DATASOURCE_PASSWORD: mypassword
+    container_name: springboot-app
     ports:
       - "8080:8080"
-    networks:
-      - backend
+    environment:
+      # Local DB settings (will be overridden in Render with real values)
+      DATABASE_URL: jdbc:postgresql://db:5432/mydb
+      DATABASE_USERNAME: myuser
+      DATABASE_PASSWORD: mypassword
+      SPRING_PROFILES_ACTIVE: dev
+    depends_on:
+      - db
 
-networks:
-  backend:
-    driver: bridge
+  db:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
